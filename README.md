@@ -11,3 +11,11 @@ and the honeypot's `stats.json`; without them the page still renders, just witho
 
 Local preview with fixtures: put a `summary.json` and a `stats.json` in `site/data/`, then
 `python3 -m http.server -d site 8000` and open `http://127.0.0.1:8000/?local=1`.
+
+Link preview image: `site/og-image.png` (1200x630) is rendered from `assets/og-image.html` with Chrome:
+
+```
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars \
+  --force-device-scale-factor=1 --window-size=1200,630 --screenshot="$PWD/site/og-image.png" \
+  "file://$PWD/assets/og-image.html"
+```
