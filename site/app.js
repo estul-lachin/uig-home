@@ -1,0 +1,39 @@
+// uig.me: fills the live numbers from lab.uig.me/summary.json and the
+// honeypot's stats.json. The page reads fine without them (dashes stay).
+// Strings from the data are only ever set with textContent.
+"use strict";
+
+(function () {
+  const params = new URLSearchParams(location.search);
+  // ?local=1 reads fixtures from data/ for a local preview
+  const LAB = params.get("local") ? "data/summary.json" : "https://lab.uig.me/summary.json";
+  const HP = params.get("local") ? "data/stats.json"
+    : "https://raw.githubusercontent.com/estul-lachin/uig-honeypot-data/main/stats.json";
+  const fmt = new Intl.NumberFormat("en");
+  const $ = (id) => document.getElementById(id);
+  const get = (url) => fetch(url, { cache: "no-cache" }).then((r) => {
+    if (!r.ok) throw new Error(url + ": " + r.status);
+    return r.json();
+  });
+
+  get(LAB).then((s) => {
+    $("labs-passed").textContent = fmt.format(s.labs_passed || 0);
+    $("labs-latest").textContent = s.latest_pass || "–";
+  }).catch((e) => console.warn(e));
+
+  get(HP).then((s) => {
+    $("hp-sessions").textContent = fmt.format(s.totals.sessions || 0);
+    $("hp-sources").textContent = fmt.format(s.totals.unique_sources || 0);
+    // the login techniques are in almost every session; show what comes after
+    const t = (s.ttps || []).find((x) => !/^T1078$|^T1110/.test(x.id));
+    if (t && /^T\d{4}(\.\d{3})?$/.test(t.id)) {
+      const a = $("hp-ttp-link");
+      a.href = "https://attack.mitre.org/techniques/" + t.id.replace(".", "/") + "/";
+      a.textContent = t.id + " " + t.name;
+      $("hp-ttp").hidden = false;
+    }
+    if (s.generated_at) {
+      $("updated").textContent = "Honeypot numbers as of " + s.generated_at.replace("T", " ").replace("Z", " UTC");
+    }
+  }).catch((e) => console.warn(e));
+})();

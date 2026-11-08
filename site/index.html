@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estul Lachin · IT support moving into security operations</title>
+<meta name="description" content="Estul Lachin, IT support technician moving into security operations in Edmonton, AB. Hands-on labs, a live SSH/Telnet honeypot and the detections built on it.">
+<meta property="og:title" content="Estul Lachin">
+<meta property="og:description" content="IT support technician moving into security operations. Hands-on labs, a live honeypot and the detections built on it.">
+<meta property="og:url" content="https://uig.me/">
+<meta property="og:type" content="profile">
+<link rel="canonical" href="https://uig.me/">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<script defer src="app.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="./" aria-current="page">Estul Lachin</a>
+    <nav>
+      <a href="https://lab.uig.me/">Labs</a>
+      <a href="https://lab.uig.me/projects/">Projects</a>
+      <a href="https://honeypot.uig.me/">Honeypot</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Estul Lachin</h1>
+    <p class="role">IT support technician moving into security operations · Edmonton, AB</p>
+    <ul class="facts">
+      <li>Four years of freelance IT support for small businesses: remote user support, network troubleshooting,
+        websites and cloud-hosted services</li>
+      <li>SOC analyst training: alert triage in Splunk and IBM QRadar, incident reports</li>
+    </ul>
+    <ul class="certs" aria-label="Certifications">
+      <li>CompTIA Security+</li>
+      <li>CompTIA A+</li>
+      <li>Google IT Support Professional Certificate</li>
+    </ul>
+    <p class="links">
+      <a class="button" href="https://www.linkedin.com/in/estul-lachin">LinkedIn</a>
+      <a class="button secondary" href="https://github.com/estul-lachin">GitHub</a>
+    </p>
+  </section>
+
+  <h2>What I build</h2>
+  <div class="projects">
+    <article class="card">
+      <p class="kicker">lab.uig.me</p>
+      <h3><a href="https://lab.uig.me/">Hands-on labs</a></h3>
+      <p>Every skill I learn becomes a Docker lab with automated checks that I can reset and redo. Only labs I have
+        passed are listed.</p>
+      <div class="nums">
+        <div><span class="num" id="labs-passed">–</span><span class="label">labs passed</span></div>
+        <div><span class="num" id="labs-latest">–</span><span class="label">latest pass</span></div>
+      </div>
+      <p class="more"><a href="https://github.com/estul-lachin/uig-lab">Source</a> · <code>./lab</code> CLI in Bash</p>
+    </article>
+
+    <article class="card">
+      <p class="kicker">honeypot.uig.me</p>
+      <h3><a href="https://honeypot.uig.me/">Live SSH/Telnet honeypot</a></h3>
+      <p>A hardened Cowrie honeypot on a VPS. Real attacks are mapped to MITRE ATT&amp;CK and published hourly
+        without IP addresses, with a report every week.</p>
+      <div class="nums">
+        <div><span class="num" id="hp-sessions">–</span><span class="label">sessions</span></div>
+        <div><span class="num" id="hp-sources">–</span><span class="label">unique sources</span></div>
+      </div>
+      <p class="top-ttp" id="hp-ttp" hidden>Most common after login: <a id="hp-ttp-link" rel="noopener"></a></p>
+      <p class="more"><a href="https://honeypot.uig.me/reports.html">Weekly reports</a> ·
+        <a href="https://github.com/estul-lachin/uig-honeypot">Source</a></p>
+    </article>
+
+    <article class="card">
+      <p class="kicker">Detections</p>
+      <h3><a href="https://github.com/estul-lachin/uig-honeypot/blob/main/docs/detections.md">Splunk detections on real attack data</a></h3>
+      <p>The honeypot's raw logs go into a local Splunk with an ATT&amp;CK tagging macro, an overview dashboard and
+        six scheduled detections, from the login-to-dropper chain to botnet wordlists shared across sources.</p>
+      <p class="more"><a href="https://github.com/estul-lachin/uig-honeypot/blob/main/docs/detections.md">Detections with SPL and sample output</a></p>
+    </article>
+  </div>
+
+  <section class="contact">
+    <h2>Contact</h2>
+    <p>The best way to reach me is <a href="https://www.linkedin.com/in/estul-lachin">LinkedIn</a>.</p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <a href="https://www.linkedin.com/in/estul-lachin">LinkedIn</a> ·
+    <a href="https://github.com/estul-lachin">GitHub</a> ·
+    <a href="https://github.com/estul-lachin/uig-home">Source</a>
+    <p class="credit" id="updated"></p>
+  </div>
+</footer>
+</body>
+</html>
