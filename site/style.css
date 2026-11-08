@@ -79,4 +79,5 @@ h3 a { color: var(--text); }
   main.wrap { padding-top: 32px; }
   h1 { font-size: 1.9rem; }
   .site-header nav { gap: 16px; }
+  .site-header .wrap { flex-wrap: wrap; height: auto; padding-top: 10px; padding-bottom: 10px; row-gap: 2px; }
 }
