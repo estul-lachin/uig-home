@@ -1,5 +1,6 @@
-// uig.me: fills the live numbers from lab.uig.me/summary.json and the
-// honeypot's stats.json. The page reads fine without them (dashes stay).
+// uig.me: fills the live numbers from lab.uig.me/summary.json,
+// detections.uig.me/summary.json and the honeypot's stats.json. If a feed
+// fails, that card's numbers are hidden; the page reads fine without them.
 // Strings from the data are only ever set with textContent.
 "use strict";
 
@@ -9,17 +10,28 @@
   const LAB = params.get("local") ? "data/summary.json" : "https://lab.uig.me/summary.json";
   const HP = params.get("local") ? "data/stats.json"
     : "https://raw.githubusercontent.com/estul-lachin/uig-honeypot-data/main/stats.json";
+  const DET = params.get("local") ? "data/detections.json" : "https://detections.uig.me/summary.json";
   const fmt = new Intl.NumberFormat("en");
   const $ = (id) => document.getElementById(id);
   const get = (url) => fetch(url, { cache: "no-cache" }).then((r) => {
     if (!r.ok) throw new Error(url + ": " + r.status);
     return r.json();
   });
+  // hide the numbers of the card that holds this element
+  const fail = (id) => (e) => {
+    console.warn(e);
+    $(id).closest(".nums").hidden = true;
+  };
 
   get(LAB).then((s) => {
     $("labs-passed").textContent = fmt.format(s.labs_passed || 0);
     $("labs-latest").textContent = s.latest_pass || "–";
-  }).catch((e) => console.warn(e));
+  }).catch(fail("labs-passed"));
+
+  get(DET).then((s) => {
+    $("det-rules").textContent = fmt.format(s.rules || 0);
+    $("det-tests").textContent = fmt.format((s.attack_test_events || 0) + (s.lookalike_test_events || 0));
+  }).catch(fail("det-rules"));
 
   get(HP).then((s) => {
     $("hp-sessions").textContent = fmt.format(s.totals.sessions || 0);
@@ -35,5 +47,5 @@
     if (s.generated_at) {
       $("updated").textContent = "Honeypot numbers as of " + s.generated_at.replace("T", " ").replace("Z", " UTC");
     }
-  }).catch((e) => console.warn(e));
+  }).catch(fail("hp-sessions"));
 })();

@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self' https://lab.uig.me https://detections.uig.me https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Estul Lachin · IT support moving into security operations</title>
 <meta name="description" content="Estul Lachin, IT support technician moving into security operations in Edmonton, AB. Hands-on labs, a live SSH/Telnet honeypot and the detections built on it.">
 <meta property="og:title" content="Estul Lachin">
@@ -16,8 +18,16 @@
 <meta property="og:image:alt" content="Estul Lachin: labs, honeypot, detections">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
 <script defer src="app.js"></script>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "Person", "name": "Estul Lachin", "url": "https://uig.me/",
+ "jobTitle": "IT support technician",
+ "address": {"@type": "PostalAddress", "addressLocality": "Edmonton", "addressRegion": "AB", "addressCountry": "CA"},
+ "sameAs": ["https://www.linkedin.com/in/estul-lachin", "https://github.com/estul-lachin"]}
+</script>
 </head>
 <body>
 <header class="site-header">
@@ -25,7 +35,6 @@
     <a class="brand" href="./" aria-current="page">Estul Lachin</a>
     <nav>
       <a href="https://lab.uig.me/">Labs</a>
-      <a href="https://lab.uig.me/projects/">Projects</a>
       <a href="https://honeypot.uig.me/">Honeypot</a>
       <a href="https://detections.uig.me/">Detections</a>
     </nav>
@@ -87,6 +96,10 @@
       <p>Sigma rules for the attacks the honeypot sees, each tested against attack and look-alike events in CI,
         converted to Splunk SPL and KQL, and verified in both Splunk and Microsoft Sentinel. In Sentinel they run
         as hourly analytics rules on the live honeypot feed and raise incidents.</p>
+      <div class="nums">
+        <div><span class="num" id="det-rules">–</span><span class="label">rules</span></div>
+        <div><span class="num" id="det-tests">–</span><span class="label">test events</span></div>
+      </div>
       <p class="more"><a href="https://github.com/estul-lachin/uig-detections">Source</a> ·
         <a href="https://github.com/estul-lachin/uig-honeypot/blob/main/docs/detections.md">Splunk detections</a></p>
     </article>
