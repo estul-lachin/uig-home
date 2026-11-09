@@ -31,6 +31,15 @@
   get(DET).then((s) => {
     $("det-rules").textContent = fmt.format(s.rules || 0);
     $("det-tests").textContent = fmt.format((s.attack_test_events || 0) + (s.lookalike_test_events || 0));
+    // SOAR: shown only when the build could read Sentinel (detections' tools/soar_stats.py)
+    const so = s.soar;
+    if (so && so.incidents > 0) {
+      $("det-soar").textContent = "SOAR: " + fmt.format(so.incidents) + " incidents since " + so.since + ", " +
+        so.enriched_pct + "% enriched automatically" +
+        (Number.isFinite(so.enrich_seconds_median) ? " (median " + so.enrich_seconds_median + " s)" : "") +
+        ", " + so.high_notified + " of " + so.high + " High escalated";
+      $("det-soar").hidden = false;
+    }
   }).catch(fail("det-rules"));
 
   get(HP).then((s) => {

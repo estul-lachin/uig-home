@@ -95,11 +95,13 @@
       <h3><a href="https://detections.uig.me/">Detection-as-code</a></h3>
       <p>Sigma rules for the attacks the honeypot sees, each tested against attack and look-alike events in CI,
         converted to Splunk SPL and KQL, and verified in both Splunk and Microsoft Sentinel. In Sentinel they run
-        as hourly analytics rules on the live honeypot feed and raise incidents.</p>
+        as hourly analytics rules on the live honeypot feed and raise incidents, which SOAR playbooks enrich,
+        triage and escalate.</p>
       <div class="nums">
         <div><span class="num" id="det-rules">–</span><span class="label">rules</span></div>
         <div><span class="num" id="det-tests">–</span><span class="label">test events</span></div>
       </div>
+      <p class="top-ttp" id="det-soar" hidden></p>
       <p class="more"><a href="https://github.com/estul-lachin/uig-detections">Source</a> ·
         <a href="https://github.com/estul-lachin/uig-honeypot/blob/main/docs/detections.md">Splunk detections</a></p>
     </article>
