@@ -69,8 +69,9 @@
     <article class="card">
       <p class="kicker">honeypot.uig.me</p>
       <h3><a href="https://honeypot.uig.me/">Live SSH/Telnet honeypot</a></h3>
-      <p>A hardened Cowrie honeypot on a VPS. Real attacks are mapped to MITRE ATT&amp;CK and published hourly
-        without IP addresses, with a report every week.</p>
+      <p>A hardened Cowrie honeypot on a VPS. Real attacks are mapped to MITRE ATT&amp;CK, enriched with AbuseIPDB
+        and published hourly without IP addresses, with a report every week. Raw events stream to Microsoft
+        Sentinel every 10 minutes.</p>
       <div class="nums">
         <div><span class="num" id="hp-sessions">–</span><span class="label">sessions</span></div>
         <div><span class="num" id="hp-sources">–</span><span class="label">unique sources</span></div>
@@ -84,8 +85,8 @@
       <p class="kicker">detections.uig.me</p>
       <h3><a href="https://detections.uig.me/">Detection-as-code</a></h3>
       <p>Sigma rules for the attacks the honeypot sees, each tested against attack and look-alike events in CI,
-        converted to Splunk SPL and Sentinel KQL, and checked in a real Splunk. The honeypot's logs also feed
-        a local Splunk with AbuseIPDB enrichment and scheduled detections.</p>
+        converted to Splunk SPL and KQL, and verified in both Splunk and Microsoft Sentinel. In Sentinel they run
+        as hourly analytics rules on the live honeypot feed and raise incidents.</p>
       <p class="more"><a href="https://github.com/estul-lachin/uig-detections">Source</a> ·
         <a href="https://github.com/estul-lachin/uig-honeypot/blob/main/docs/detections.md">Splunk detections</a></p>
     </article>
