@@ -45,6 +45,12 @@
   get(HP).then((s) => {
     $("hp-sessions").textContent = fmt.format(s.totals.sessions || 0);
     $("hp-sources").textContent = fmt.format(s.totals.unique_sources || 0);
+    // say when counting started, e.g. "sessions since Nov 8"
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s.first_day || "")) {
+      const since = new Date(s.first_day + "T00:00:00Z")
+        .toLocaleDateString("en", { month: "short", day: "numeric", timeZone: "UTC" });
+      $("hp-sessions-label").textContent = "sessions since " + since;
+    }
     // the login techniques are in almost every session; show what comes after
     const t = (s.ttps || []).find((x) => !/^T1078$|^T1110/.test(x.id));
     if (t && /^T\d{4}(\.\d{3})?$/.test(t.id)) {

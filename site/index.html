@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self' https://lab.uig.me https://detections.uig.me https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>Estul Lachin · IT support &amp; security operations</title>
-<meta name="description" content="Estul Lachin, IT support and security operations in Edmonton, AB. Hands-on labs, a live SSH/Telnet honeypot and the detections built on it.">
+<title>Estul Lachin · Security operations &amp; IT support</title>
+<meta name="description" content="Estul Lachin, security operations and IT support in Edmonton, AB. Hands-on labs, a live SSH/Telnet honeypot and the detections built on it.">
 <meta property="og:title" content="Estul Lachin">
-<meta property="og:description" content="IT support and security operations. Hands-on labs, a live honeypot and the detections built on it.">
+<meta property="og:description" content="Security operations and IT support. Hands-on labs, a live honeypot and the detections built on it.">
 <meta property="og:url" content="https://uig.me/">
 <meta property="og:type" content="profile">
 <link rel="canonical" href="https://uig.me/">
@@ -24,7 +24,7 @@
 <script defer src="app.js"></script>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "Person", "name": "Estul Lachin", "url": "https://uig.me/",
- "jobTitle": "IT support technician",
+ "jobTitle": "Cybersecurity analyst",
  "email": "mailto:hello@uig.me",
  "address": {"@type": "PostalAddress", "addressLocality": "Edmonton", "addressRegion": "AB", "addressCountry": "CA"},
  "sameAs": ["https://www.linkedin.com/in/estul-lachin", "https://github.com/estul-lachin"]}
@@ -36,6 +36,7 @@
     <a class="brand" href="./" aria-current="page">Estul Lachin</a>
     <nav>
       <a href="https://lab.uig.me/">Labs</a>
+      <a href="https://lab.uig.me/timeline/">Timeline</a>
       <a href="https://honeypot.uig.me/">Honeypot</a>
       <a href="https://detections.uig.me/">Detections</a>
     </nav>
@@ -45,18 +46,22 @@
 <main class="wrap">
   <section class="hero">
     <h1>Estul Lachin</h1>
-    <p class="role">IT support &amp; security operations · Edmonton, AB</p>
+    <p class="role">Security operations &amp; IT support · Edmonton, AB</p>
+    <p class="seeking"><strong>Looking for</strong> a cybersecurity role, Tier 1 SOC analyst first, or an IT support
+      role. Permanent Resident of Canada; Edmonton, remote, or open to relocation.</p>
     <ul class="facts">
-      <li>Three and a half years of freelance IT support for small businesses: remote user support, network troubleshooting,
-        websites and cloud-hosted services</li>
-      <li>SOC analyst: Tier 1 alert triage in Splunk ES and IBM QRadar, phishing analysis, incident reports in Jira</li>
+      <li><strong>SOC analyst, Cydeo</strong> (remote, Apr 2026 – present): Tier 1 alert triage in Splunk ES and
+        IBM QRadar, phishing analysis, incident reports in Jira</li>
+      <li><strong>Freelance IT support</strong> (Sep 2022 – Mar 2026): three and a half years supporting small
+        businesses with remote user support, network troubleshooting, websites and cloud-hosted services</li>
     </ul>
     <ul class="certs" aria-label="Certifications">
       <li>CompTIA Security+</li>
       <li>Google IT Support Professional Certificate</li>
     </ul>
     <p class="links">
-      <a class="button" href="mailto:hello@uig.me">hello@uig.me</a>
+      <a class="button" href="Estul-Lachin-Resume.pdf" type="application/pdf">Résumé (PDF)</a>
+      <a class="button secondary" href="mailto:hello@uig.me">hello@uig.me</a>
       <a class="button secondary" href="https://www.linkedin.com/in/estul-lachin">LinkedIn</a>
       <a class="button secondary" href="https://github.com/estul-lachin">GitHub</a>
     </p>
@@ -83,7 +88,7 @@
         and published hourly without IP addresses, with a report every week. Raw events stream to Microsoft
         Sentinel every 10 minutes.</p>
       <div class="nums">
-        <div><span class="num" id="hp-sessions">–</span><span class="label">sessions</span></div>
+        <div><span class="num" id="hp-sessions">–</span><span class="label" id="hp-sessions-label">sessions</span></div>
         <div><span class="num" id="hp-sources">–</span><span class="label">unique sources</span></div>
       </div>
       <p class="top-ttp" id="hp-ttp" hidden>Most common after login: <a id="hp-ttp-link" rel="noopener"></a></p>
@@ -119,7 +124,8 @@
   <section class="contact">
     <h2>Contact</h2>
     <p>Email me at <a href="mailto:hello@uig.me">hello@uig.me</a> or message me on
-      <a href="https://www.linkedin.com/in/estul-lachin">LinkedIn</a>.</p>
+      <a href="https://www.linkedin.com/in/estul-lachin">LinkedIn</a>. My résumé is
+      <a href="Estul-Lachin-Resume.pdf" type="application/pdf">here as a PDF</a>.</p>
   </section>
 </main>
 
