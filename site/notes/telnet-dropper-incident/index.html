@@ -258,7 +258,7 @@ rm -rf telnet2.sh                                             <span class="c"># 
   <p>None of these change the verdict on this attack. They change how much I would trust the pipeline's
     timing and its comments on a busier day, and they are now my next fixes.</p>
 
-  <h2>Follow-up, same day: three of the four fixed</h2>
+  <h2>Follow-up, same day: all four fixed</h2>
   <ol class="steps">
     <li><strong>Duplicate alerts: cause found.</strong> Every alert's creation time is about 300 s after the end
       of its query window (median 303 s), and the second alert in 279 could only have matched if
@@ -277,11 +277,19 @@ rm -rf telnet2.sh                                             <span class="c"># 
       (one shipper cycle) and asks once more, and the comment says when it queried. Incidents from Cowrie rules
       always have sessions, so they skip the wait: the first real one after the deploy was enriched in 3 s. The
       end-to-end test passed 6 of 6 checks, and its comment came 604 s after the incident, as designed.</li>
-    <li><strong>Six incidents for one session: not yet.</strong> This needs a design decision between merging
-      per IP across rules and a single chain rule, so it gets its own change.</li>
+    <li><strong>Six incidents for one session: now one.</strong> Sentinel groups alerts into incidents only
+      within one rule, so the detection rules now raise alerts only. A new rule, <em>Honeypot activity</em>, reads
+      their new alerts every 5 minutes and raises one alert per IP with the highest severity, the rules that
+      fired and their tactics and techniques. Its incidents group by IP and severity over a day. Severity is part
+      of the key because Sentinel doesn't raise an open incident's severity when a worse alert joins it, so a
+      High alert for an IP with an open Medium incident opens a new High one and notifies. The 251 incidents of
+      the two days before came from 74 IPs. The first real one after the change: four rules fired on one
+      session, and it became one High incident, enriched in 4 s, with one Telegram message. The cost is 5 to
+      10 more minutes before the incident exists.</li>
   </ol>
   <p>The changes are in
-    <a href="https://github.com/estul-lachin/uig-detections/commit/0363134">uig-detections 0363134</a>.
+    <a href="https://github.com/estul-lachin/uig-detections/commit/0363134">uig-detections 0363134</a> and
+    <a href="https://github.com/estul-lachin/uig-detections/commit/3209ad9">3209ad9</a>.
     In a few days I'll recount the duplicate alerts on live data to confirm the first fix holds.</p>
 </article>
 </main>
