@@ -72,8 +72,9 @@
     <article class="card">
       <p class="kicker">lab.uig.me</p>
       <h3><a href="https://lab.uig.me/">Hands-on labs</a></h3>
-      <p>Every skill I learn becomes a Docker lab with automated checks that I can reset and redo. Only labs I have
-        passed are listed.</p>
+      <p class="lead">Every skill I learn, I practise in a lab that grades my work automatically.</p>
+      <p class="detail">Each lab is a Docker environment with automated checks that I can reset and redo. Only labs
+        I have passed are listed.</p>
       <div class="nums">
         <div><span class="num" id="labs-passed">–</span><span class="label">labs passed</span></div>
         <div><span class="num" id="labs-latest">–</span><span class="label">latest pass</span></div>
@@ -84,9 +85,10 @@
     <article class="card">
       <p class="kicker">honeypot.uig.me</p>
       <h3><a href="https://honeypot.uig.me/">Live SSH/Telnet honeypot</a></h3>
-      <p>A hardened Cowrie honeypot on a VPS. Real attacks are mapped to MITRE ATT&amp;CK, enriched with AbuseIPDB
-        and published hourly without IP addresses, with a report every week. Raw events stream to Microsoft
-        Sentinel every 10 minutes.</p>
+      <p class="lead">A decoy server that real attackers break into every day, so I can see what they do.</p>
+      <p class="detail">A hardened Cowrie honeypot on a VPS. Attacks are mapped to MITRE ATT&amp;CK, enriched with
+        AbuseIPDB and published hourly without IP addresses, with a report every week. Raw events stream to
+        Microsoft Sentinel every 10 minutes.</p>
       <div class="nums">
         <div><span class="num" id="hp-sessions">–</span><span class="label" id="hp-sessions-label">sessions</span></div>
         <div><span class="num" id="hp-sources">–</span><span class="label">unique sources</span></div>
@@ -99,15 +101,19 @@
     <article class="card">
       <p class="kicker">detections.uig.me</p>
       <h3><a href="https://detections.uig.me/">Detection-as-code</a></h3>
-      <p>Sigma rules for the attacks the honeypot sees, each tested against attack and look-alike events in CI,
-        converted to Splunk SPL and KQL, and verified in both Splunk and Microsoft Sentinel. In Sentinel they run
-        as hourly analytics rules on the live honeypot feed and raise incidents, which SOAR playbooks enrich,
-        triage and escalate.</p>
-      <div class="nums">
+      <p class="lead">Detects the honeypot's real attacks and triages them automatically, the way a SOC does.</p>
+      <div class="nums" id="det-soar-nums" hidden>
+        <div><span class="num" id="soar-incidents">–</span><span class="label" id="soar-incidents-label">incidents</span></div>
+        <div><span class="num" id="soar-enriched">–</span><span class="label" id="soar-enriched-label">auto-enriched</span></div>
+        <div><span class="num" id="soar-high">–</span><span class="label">High escalated</span></div>
+      </div>
+      <div class="nums" id="det-rule-nums">
         <div><span class="num" id="det-rules">–</span><span class="label">rules</span></div>
         <div><span class="num" id="det-tests">–</span><span class="label">test events</span></div>
       </div>
-      <p class="top-ttp" id="det-soar" hidden></p>
+      <p class="detail">Sigma rules, each tested against attack and look-alike events in CI<span id="det-counts"></span>,
+        converted to Splunk SPL and KQL, and verified in both Splunk and Microsoft Sentinel. In Sentinel they run
+        hourly on the live honeypot feed and raise incidents, which SOAR playbooks enrich, triage and escalate.</p>
       <p class="more"><a href="https://github.com/estul-lachin/uig-detections">Source</a> ·
         <a href="https://github.com/estul-lachin/uig-honeypot/blob/main/docs/detections.md">Splunk detections</a></p>
     </article>

@@ -31,14 +31,24 @@
   get(DET).then((s) => {
     $("det-rules").textContent = fmt.format(s.rules || 0);
     $("det-tests").textContent = fmt.format((s.attack_test_events || 0) + (s.lookalike_test_events || 0));
-    // SOAR: shown only when the build could read Sentinel (detections' tools/soar_stats.py)
+    // SOAR: shown only when the build could read Sentinel (detections' tools/soar_stats.py).
+    // Its numbers then take the big row, and the rule counts move into the detail line.
     const so = s.soar;
     if (so && so.incidents > 0) {
-      $("det-soar").textContent = "SOAR: " + fmt.format(so.incidents) + " incidents since " + so.since + ", " +
-        so.enriched_pct + "% enriched automatically" +
-        (Number.isFinite(so.enrich_seconds_median) ? " (median " + so.enrich_seconds_median + " s)" : "") +
-        ", " + so.high_notified + " of " + so.high + " High escalated";
-      $("det-soar").hidden = false;
+      $("soar-incidents").textContent = fmt.format(so.incidents);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(so.since || "")) {
+        $("soar-incidents-label").textContent = "incidents since " + new Date(so.since + "T00:00:00Z")
+          .toLocaleDateString("en", { month: "short", day: "numeric", timeZone: "UTC" });
+      }
+      $("soar-enriched").textContent = (so.enriched_pct || 0) + "%";
+      if (Number.isFinite(so.enrich_seconds_median)) {
+        $("soar-enriched-label").textContent = "auto-enriched, ~" + so.enrich_seconds_median + " s";
+      }
+      $("soar-high").textContent = fmt.format(so.high_notified || 0) + "/" + fmt.format(so.high || 0);
+      $("det-counts").textContent = " (" + fmt.format(s.rules || 0) + " rules, " +
+        $("det-tests").textContent + " test events)";
+      $("det-soar-nums").hidden = false;
+      $("det-rule-nums").hidden = true;
     }
   }).catch(fail("det-rules"));
 
