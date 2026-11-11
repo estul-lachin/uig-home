@@ -257,6 +257,32 @@ rm -rf telnet2.sh                                             <span class="c"># 
     and 285 took 129 s to enrich where the others took 2–3 s.</p>
   <p>None of these change the verdict on this attack. They change how much I would trust the pipeline's
     timing and its comments on a busier day, and they are now my next fixes.</p>
+
+  <h2>Follow-up, same day: three of the four fixed</h2>
+  <ol class="steps">
+    <li><strong>Duplicate alerts: cause found.</strong> Every alert's creation time is about 300 s after the end
+      of its query window (median 303 s), and the second alert in 279 could only have matched if
+      <code>ago(1h)</code> is measured from the window's end. So Sentinel runs the query five minutes late with
+      <code>now()</code> set to the end of the window. Events ingested in those five minutes were caught by that
+      run and again by the next. The query now reads
+      <code>ingestion_time() &gt; ago(15m) and ingestion_time() &lt;= now()</code>, which makes the windows
+      back to back. The few remaining duplicates came from redeploys, which start a fresh schedule.</li>
+    <li><strong>Latency: rules now run every 15 minutes</strong> instead of hourly, all 17 of them. A Cowrie
+      event now waits at most about 30 minutes for its incident (10 minutes of shipping, up to 15 to the next
+      run, 5 of Sentinel's delay), not 66. After the deploy, the window ends moved from hourly to every
+      15 minutes (19:51, then 20:06).</li>
+    <li><strong>Stale enrichment: the playbook waits when it finds nothing.</strong> Re-running on "alert
+      added" wouldn't have helped 279: once the duplicates are fixed, nothing new joins it, and the Cowrie data
+      lands in other incidents. Instead, if the honeypot query finds 0 sessions, the playbook waits 10 minutes
+      (one shipper cycle) and asks once more, and the comment says when it queried. Incidents from Cowrie rules
+      always have sessions, so they skip the wait: the first real one after the deploy was enriched in 3 s. The
+      end-to-end test passed 6 of 6 checks, and its comment came 604 s after the incident, as designed.</li>
+    <li><strong>Six incidents for one session: not yet.</strong> This needs a design decision between merging
+      per IP across rules and a single chain rule, so it gets its own change.</li>
+  </ol>
+  <p>The changes are in
+    <a href="https://github.com/estul-lachin/uig-detections/commit/0363134">uig-detections 0363134</a>.
+    In a few days I'll recount the duplicate alerts on live data to confirm the first fix holds.</p>
 </article>
 </main>
 
