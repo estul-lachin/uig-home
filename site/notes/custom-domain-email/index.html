@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Free email on your own domain · Estul Lachin</title>
+<meta name="description" content="How I set up hello@uig.me for free with forwarding to Gmail and a Brevo SMTP relay, with SPF, DKIM and DMARC passing, and how to read the headers that prove it.">
+<meta property="og:title" content="Free email on your own domain, with SPF, DKIM and DMARC passing">
+<meta property="og:description" content="Forwarding to Gmail, sending through Brevo, and reading the Authentication-Results headers that prove it works.">
+<meta property="og:url" content="https://uig.me/notes/custom-domain-email/">
+<meta property="og:type" content="article">
+<meta property="og:image" content="https://uig.me/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://uig.me/notes/custom-domain-email/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/">Estul Lachin</a>
+    <nav>
+      <a href="https://lab.uig.me/">Labs</a>
+      <a href="https://honeypot.uig.me/">Honeypot</a>
+      <a href="https://detections.uig.me/">Detections</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<article class="article">
+  <p class="kicker"><a href="/">uig.me</a> / notes</p>
+  <h1>Free email on your own domain, with SPF, DKIM and DMARC passing</h1>
+  <p class="meta"><time datetime="2026-11-11">11 November 2026</time> · about 8 minutes</p>
+
+  <p>I wanted recruiters to reach me at <a href="mailto:hello@uig.me">hello@uig.me</a> instead of a Gmail address.
+    I had four requirements:</p>
+  <ul>
+    <li><strong>No cost.</strong> No paid mailbox.</li>
+    <li><strong>One inbox.</strong> I keep reading and writing in Gmail.</li>
+    <li><strong>Replies authenticate as uig.me.</strong> A reply must pass DMARC for my domain, and the
+      recipient should not see "sent via gmail.com".</li>
+    <li><strong>DNS stays where it is.</strong> Five sites on GitHub Pages hang off this zone, so moving it to
+      another DNS provider was not worth the risk.</li>
+  </ul>
+  <p>The result has two halves: forwarding for incoming mail, and an SMTP relay for outgoing mail. Both halves
+    run on free plans. Below are the setup, the DNS records, and the message headers that show it works.</p>
+
+  <h2>How it fits together</h2>
+  <p class="flow-label">Incoming</p>
+  <ol class="flow" aria-label="Incoming mail path">
+    <li><strong>Sender</strong><span>any mail server</span></li>
+    <li><strong>uig.me MX</strong><span>registrar's free forwarding</span></li>
+    <li><strong>Gmail</strong><span>filter: never spam, label uig.me</span></li>
+  </ol>
+  <p class="flow-label">Outgoing</p>
+  <ol class="flow" aria-label="Outgoing mail path">
+    <li><strong>Gmail</strong><span>"Send mail as" hello@uig.me</span></li>
+    <li><strong>Brevo SMTP relay</strong><span>signs with DKIM <code>d=uig.me</code></span></li>
+    <li><strong>Recipient</strong><span>checks SPF, DKIM, DMARC</span></li>
+  </ol>
+
+  <h2>The DNS records</h2>
+  <p>This is the whole mail part of the zone. Spaceship, my registrar, added the MX and SPF records itself
+    when I turned on forwarding. I added the rest from what Brevo showed me.</p>
+  <div class="table-wrap">
+  <table class="records">
+    <thead><tr><th>Name</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td><code>@</code> <span class="rtype">MX</span></td>
+        <td><code>mx1.efwd.spaceship.net</code> and <code>mx2.efwd.spaceship.net</code><span class="purpose">Receive mail and forward it</span></td></tr>
+      <tr><td><code>@</code> <span class="rtype">TXT</span></td>
+        <td><code>v=spf1 include:spf.efwd.spaceship.net ~all</code><span class="purpose">SPF: which servers may send with a uig.me envelope sender</span></td></tr>
+      <tr><td><code>@</code> <span class="rtype">TXT</span></td>
+        <td><code>brevo-code:…</code><span class="purpose">Proves to Brevo that I own the domain</span></td></tr>
+      <tr><td><code>brevo1._domainkey</code> <span class="rtype">CNAME</span></td>
+        <td><code>b1.uig-me.dkim.brevo.com</code><span class="purpose">DKIM public key; the CNAME lets Brevo rotate it</span></td></tr>
+      <tr><td><code>brevo2._domainkey</code> <span class="rtype">CNAME</span></td>
+        <td><code>b2.uig-me.dkim.brevo.com</code><span class="purpose">Second DKIM key</span></td></tr>
+      <tr><td><code>_dmarc</code> <span class="rtype">TXT</span></td>
+        <td><code>v=DMARC1; p=none; rua=mailto:rua@dmarc.brevo.com</code><span class="purpose">DMARC policy, and where aggregate reports go</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Two things to watch in the registrar's form:</p>
+  <ul>
+    <li><strong>A domain has only one SPF record.</strong> If a provider asks you to "add" SPF, edit the existing
+      record and add another <code>include:</code> to it. Two <code>v=spf1</code> records make SPF return
+      <code>permerror</code>.</li>
+    <li><strong>The host field is usually relative.</strong> Spaceship appends <code>.uig.me</code> itself.
+      If you paste <code>brevo1._domainkey.uig.me</code>, you get a record named
+      <code>brevo1._domainkey.uig.me.uig.me</code>. I checked for this with
+      <code>dig @launch1.spaceship.net brevo1._domainkey.uig.me.uig.me CNAME</code>.</li>
+  </ul>
+
+  <h2>Why Brevo is not in the SPF record</h2>
+  <p>This surprised me at first. DMARC passes when <em>either</em> SPF or DKIM passes <em>and</em> is aligned,
+    meaning its domain matches the domain in the visible <code>From:</code> header.</p>
+  <ul>
+    <li><strong>SPF</strong> checks the envelope sender (<code>Return-Path</code>). Brevo sets that to its own
+      bounce domain, <code>gx.d.sender-sib.com</code>, so it can process bounces. SPF passes, but for Brevo's
+      domain, so it is not aligned with uig.me. Adding Brevo to uig.me's SPF record would change nothing.</li>
+    <li><strong>DKIM</strong> is signed with <code>d=uig.me</code>, using the key behind the
+      <code>brevo1._domainkey</code> CNAME. It passes and is aligned, so DMARC passes.</li>
+  </ul>
+  <p>This is also why I did not send through Gmail's own servers. A message sent that way is signed
+    <code>d=gmail.com</code> and has a gmail.com envelope sender. Neither aligns with a <code>From:</code> of
+    uig.me, so DMARC for my domain would fail.</p>
+
+  <h2>Setting it up</h2>
+  <ol class="steps">
+    <li><strong>Forwarding.</strong> In the registrar's email settings, forward to a single address, my Gmail.
+      Spaceship sent no confirmation email; the MX records were live within minutes.</li>
+    <li><strong>Keep forwarded mail out of spam.</strong> My first test landed in Gmail's spam folder, which is
+      common for forwarded mail. Create a Gmail filter with <em>To:</em> <code>@uig.me</code>, then
+      <em>Never send it to Spam</em> and <em>Apply label</em>.</li>
+    <li><strong>Brevo domain.</strong> Add the domain, choose manual authentication, copy the records into DNS,
+      then verify.</li>
+    <li><strong>Brevo sender.</strong> Add <code>hello@uig.me</code> as a sender. The verification code arrives
+      through the forwarding you just set up.</li>
+    <li><strong>SMTP key.</strong> Generate one under <em>SMTP &amp; API</em>. The SMTP login looks like
+      <code>…@smtp-brevo.com</code>; it is not your account email. When Brevo asked whether to block SMTP from
+      unauthorized IP addresses, I said no: Gmail connects from many changing addresses that cannot be listed.
+      The protections that remain are a key that lives only in Gmail, two-factor auth on the Brevo account,
+      and revoking the key if it leaks.</li>
+    <li><strong>Gmail "Send mail as".</strong> Settings → Accounts and Import → Add another email address.
+      Use <code>smtp-relay.brevo.com</code>, port 587, TLS, with the SMTP login and key. Then set
+      <em>Reply from the same address the message was sent to</em>.</li>
+  </ol>
+
+  <h2>Reading the headers</h2>
+  <p>The copy in your own Sent folder is the message <em>before</em> it reaches the relay, so it has no
+    authentication results. Open the message on the <strong>recipient's</strong> side and view the source.
+    Below are the relevant lines from my first test, as received by Outlook.com. I have shortened them and
+    removed the recipient.</p>
+<pre><code>Return-Path: bounces-…@<mark>gx.d.sender-sib.com</mark>
+Authentication-Results: mx.microsoft.com 1; <mark>spf=pass</mark> (sender IP is 77.32.148.24)
+ smtp.mailfrom=gx.d.sender-sib.com; <mark>dkim=pass</mark> (signature was verified)
+ <mark>header.d=uig.me</mark>;<mark>dmarc=pass</mark> action=none header.from=uig.me;<mark>compauth=pass</mark> reason=100
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; <mark>d=uig.me</mark>; <mark>s=brevo1</mark>; …
+From: "Estul Lachin" &lt;hello@uig.me&gt;
+X-MS-Exchange-Organization-SCL: <mark>1</mark>
+X-Microsoft-Antispam-Mailbox-Delivery: … <mark>dest:I</mark> …</code></pre>
+  <dl class="fields">
+    <dt><code>spf=pass smtp.mailfrom=gx.d.sender-sib.com</code></dt>
+    <dd>SPF passed for Brevo's bounce domain. It is real but not aligned with uig.me, as explained above.</dd>
+    <dt><code>dkim=pass header.d=uig.me</code></dt>
+    <dd>The signature verified against the key at <code>brevo1._domainkey.uig.me</code>. This is the aligned
+      pass that DMARC relies on.</dd>
+    <dt><code>dmarc=pass action=none header.from=uig.me</code></dt>
+    <dd>DMARC passed for the visible sender's domain. <code>action=none</code> reflects my current
+      <code>p=none</code> policy.</dd>
+    <dt><code>compauth=pass reason=100</code></dt>
+    <dd>Microsoft's composite verdict, which combines SPF, DKIM, DMARC and its own signals. A reason code in the
+      100s means the message passed.</dd>
+    <dt><code>SCL: 1</code> and <code>dest:I</code></dt>
+    <dd>Spam confidence level 1 (0 and 1 mean not spam), delivered to the <strong>I</strong>nbox rather
+      than Junk.</dd>
+  </dl>
+  <p>The same check at Gmail, in a second test, read <code>dkim=pass header.i=@uig.me header.s=brevo1</code>
+    and <code>dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=uig.me</code>.</p>
+
+  <h3>Where the first message spent nine minutes</h3>
+  <p>The first test took about ten minutes to arrive. The <code>Received</code> headers, read from the bottom
+    up, show where the time went:</p>
+<pre><code>Received: by mail-dy1-f178.google.com … ; Wed, 11 Nov 2026 09:07:07 -0800 (PST)   <span class="c"># Gmail hands it to the relay: 17:07:07 UTC</span>
+Received: from gx.d.sender-sib.com (77.32.148.24) by …outlook.com … ; 17:16:24 +0000  <span class="c"># Brevo delivers to Outlook</span>
+X-MS-Exchange-Transport-EndToEndLatency: 00:00:04.09                                  <span class="c"># Outlook to the mailbox: 4 s</span></code></pre>
+  <p>The relay held the message for nine minutes, which is common for a brand-new account. Outlook needed
+    four seconds. In the second test, the hand-off to Brevo and the arrival at Gmail were two seconds
+    apart.</p>
+
+  <h2>Gotchas</h2>
+  <ul>
+    <li><strong>Do not test by sending from the same Gmail.</strong> When a message you sent comes back through
+      forwarding, Gmail treats it as the same message and keeps only the Sent copy, so it looks as if
+      forwarding is broken.</li>
+    <li><strong>The free relay adds tracking.</strong> Brevo inserts a hidden open-tracking image and a
+      <code>List-Unsubscribe</code> header, which can make mail clients show an "Unsubscribe" link next to my
+      name. Its "anonymous tracking" setting only stops linking opens to contacts; the image stays. I accepted
+      this for now. If it matters to you, choose a relay that lets you turn tracking off.</li>
+  </ul>
+
+  <h2>Next: enforcing DMARC</h2>
+  <p>With <code>p=none</code>, receivers report on mail claiming to be from uig.me but still deliver it, even
+    when it fails. After a week or two of aggregate reports showing that Brevo is the only legitimate source,
+    I will move to <code>p=quarantine</code> and then to <code>p=reject</code>. From then on, receivers will
+    refuse a forged <code>From: …@uig.me</code>.</p>
+  <p>This is the same evidence a SOC analyst reads when triaging a reported phishing email. A spoofed message
+    from my domain would show <code>dmarc=fail header.from=uig.me</code>, with a <code>Return-Path</code> and
+    sending IP that have nothing to do with Brevo. Setting up the passing case myself made the failing case
+    much easier to recognize.</p>
+</article>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <a href="mailto:hello@uig.me">Email</a> ·
+    <a href="https://www.linkedin.com/in/estul-lachin">LinkedIn</a> ·
+    <a href="https://github.com/estul-lachin">GitHub</a> ·
+    <a href="https://github.com/estul-lachin/uig-home">Source</a>
+  </div>
+</footer>
+</body>
+</html>
