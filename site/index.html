@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self' https://lab.uig.me https://detections.uig.me https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self' https://lab.uig.me https://detections.uig.me https://guide.uig.me https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Estul Lachin · Security operations &amp; IT support</title>
 <meta name="description" content="Estul Lachin, security operations and IT support in Edmonton, AB. Hands-on labs, a live SSH/Telnet honeypot and the detections built on it.">
@@ -39,6 +39,7 @@
       <a href="https://lab.uig.me/timeline/">Timeline</a>
       <a href="https://honeypot.uig.me/">Honeypot</a>
       <a href="https://detections.uig.me/">Detections</a>
+      <a href="https://guide.uig.me/">Guide</a>
     </nav>
   </div>
 </header>
@@ -116,6 +117,20 @@
         every 15 minutes on the live honeypot feed and raise incidents, which SOAR playbooks enrich, triage and escalate.</p>
       <p class="more"><a href="https://github.com/estul-lachin/uig-detections">Source</a> ·
         <a href="https://github.com/estul-lachin/uig-honeypot/blob/main/docs/detections.md">Splunk detections</a></p>
+    </article>
+
+    <article class="card">
+      <p class="kicker">guide.uig.me</p>
+      <h3><a href="https://guide.uig.me/">SOC field guide</a></h3>
+      <p class="lead">Evidence that I work in Splunk, Microsoft Sentinel and Wazuh, on the honeypot's real data.</p>
+      <div class="nums" id="guide-nums">
+        <div><span class="num" id="guide-playbooks">–</span><span class="label">cross-checked playbooks</span></div>
+        <div id="guide-closed-box" hidden><span class="num" id="guide-closed">–</span><span class="label">incidents I closed</span></div>
+        <div id="guide-cases-box" hidden><span class="num" id="guide-cases">–</span><span class="label">investigations</span></div>
+      </div>
+      <p class="detail">The same investigation questions written in SPL, KQL and Wazuh's query language, run on the
+        same day of data and checked against each other.</p>
+      <p class="more"><a href="https://github.com/estul-lachin/uig-guide">Source</a></p>
     </article>
   </div>
 

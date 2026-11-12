@@ -1,5 +1,5 @@
 // uig.me: fills the live numbers from lab.uig.me/summary.json,
-// detections.uig.me/summary.json and the honeypot's stats.json. If a feed
+// detections.uig.me/summary.json, guide.uig.me/summary.json and the honeypot's stats.json. If a feed
 // fails, that card's numbers are hidden; the page reads fine without them.
 // Strings from the data are only ever set with textContent.
 "use strict";
@@ -11,6 +11,7 @@
   const HP = params.get("local") ? "data/stats.json"
     : "https://raw.githubusercontent.com/estul-lachin/uig-honeypot-data/main/stats.json";
   const DET = params.get("local") ? "data/detections.json" : "https://detections.uig.me/summary.json";
+  const GUIDE = params.get("local") ? "data/guide.json" : "https://guide.uig.me/summary.json";
   const fmt = new Intl.NumberFormat("en");
   const $ = (id) => document.getElementById(id);
   const get = (url) => fetch(url, { cache: "no-cache" }).then((r) => {
@@ -51,6 +52,19 @@
       $("det-rule-nums").hidden = true;
     }
   }).catch(fail("det-rules"));
+
+  get(GUIDE).then((s) => {
+    $("guide-playbooks").textContent = fmt.format(s.playbooks || 0);
+    // owner's own work: shown only once there is some
+    if (s.incidents_closed_by_me > 0) {
+      $("guide-closed").textContent = fmt.format(s.incidents_closed_by_me);
+      $("guide-closed-box").hidden = false;
+    }
+    if (s.cases > 0) {
+      $("guide-cases").textContent = fmt.format(s.cases);
+      $("guide-cases-box").hidden = false;
+    }
+  }).catch(fail("guide-playbooks"));
 
   get(HP).then((s) => {
     $("hp-sessions").textContent = fmt.format(s.totals.sessions || 0);
