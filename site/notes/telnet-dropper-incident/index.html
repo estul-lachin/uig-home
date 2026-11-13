@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Incident report: a one-second Telnet dropper · Estul Lachin</title>
-<meta name="description" content="One botnet session on my honeypot, from the first packet to the closed incidents: timeline, the detections and SOAR actions it triggered, ATT&amp;CK mapping, IOCs, my verdict, and what it showed me about my own pipeline.">
+<meta name="description" content="One botnet session on my honeypot, from the first packet to the closed incidents: timeline, the detections and SOAR actions it triggered, ATT&amp;CK mapping, IOCs, my verdict, what it showed me about my own pipeline, and the same incident worked again in Splunk and Wazuh.">
 <meta property="og:title" content="Incident report: a one-second Telnet dropper">
 <meta property="og:description" content="Timeline, detections, SOAR response, ATT&amp;CK mapping, IOCs and verdict for one real botnet session, plus four gaps it exposed in my pipeline.">
 <meta property="og:url" content="https://uig.me/notes/telnet-dropper-incident/">
@@ -37,7 +37,7 @@
 <article class="article">
   <p class="kicker"><a href="/">uig.me</a> / notes</p>
   <h1>Incident report: a one-second Telnet dropper</h1>
-  <p class="meta"><time datetime="2026-11-11">11 November 2026</time> · about 10 minutes</p>
+  <p class="meta"><time datetime="2026-11-11">11 November 2026</time> · about 15 minutes · updated 13 November: <a href="#other-siems">the same incident in Splunk and Wazuh</a></p>
 
   <p>This is a write-up of one real attack on my <a href="https://honeypot.uig.me/">honeypot</a>, done the way
     I would hand it to the next shift: what happened, how it was detected, what the automation did, what I
@@ -166,7 +166,8 @@ rm -rf telnet2.sh                                             <span class="c"># 
     also 100/100 on AbuseIPDB. That session logged in as <code>user</code>/<code>user</code> and sent a
     byte-for-byte identical command line. Same tooling, same infrastructure, two days and two continents apart,
     which again points to a bot spreading on its own. The earlier session came before the SOAR automation went
-    live (9 November, 15:47 UTC), so it was never enriched.</p>
+    live (9 November, 15:47 UTC), so it was never enriched. (A third identical session came that evening; see
+    <a href="#other-siems">the Splunk pivot</a>.)</p>
   <h3>The password</h3>
   <p><code>LSiuY7pOmZG2s</code> isn't a factory default, so I checked whether it fingerprints this bot. It
     appears once more, eleven hours later, from a different source. That session is a different family:
@@ -177,8 +178,9 @@ rm -rf telnet2.sh                                             <span class="c"># 
   <p>Suricata labelled the command line CVE-2024-40891, a command injection in Zyxel's Telnet service. The
     signature matches the shape of the payload over Telnet. My honeypot is not a Zyxel device and the attacker
     logged in normally first, so I read this as "this bot uses the same delivery as the campaigns that exploit
-    that CVE", not as an exploit attempt that could have worked here. In 30 days this signature fired exactly
-    once, on this session.</p>
+    that CVE", not as an exploit attempt that could have worked here. When I wrote this, the signature had
+    fired exactly once in 30 days, on this session. It fired again 15 hours later, on the third session with
+    the same loader.</p>
 
   <h2>MITRE ATT&amp;CK</h2>
   <div class="table-wrap">
@@ -202,7 +204,7 @@ rm -rf telnet2.sh                                             <span class="c"># 
     <thead><tr><th>Type</th><th>Value</th><th>Note</th></tr></thead>
     <tbody>
       <tr><td>URL</td><td><code>hxxp://176[.]65[.]139[.]157/telnet2[.]sh</code></td><td>Stage-one loader. Also tried over TFTP (69/udp) and FTP (21/tcp).</td></tr>
-      <tr><td>IPv4</td><td><code>176[.]65[.]139[.]157</code></td><td>Download host, seen in 2 sessions, 9 and 11 Nov</td></tr>
+      <tr><td>IPv4</td><td><code>176[.]65[.]139[.]157</code></td><td>Download host, seen in 3 sessions, 9 and 11 Nov</td></tr>
       <tr><td>File name</td><td><code>telnet2.sh</code></td><td>Written to /tmp, /var/run, /mnt, /root or /</td></tr>
       <tr><td>Credential</td><td><code>root</code> / <code>LSiuY7pOmZG2s</code></td><td>Shared with at least one other bot family</td></tr>
       <tr><td>Suricata</td><td>ET EXPLOIT … CVE-2024-40891</td><td>Fires on this payload over Telnet</td></tr>
@@ -292,6 +294,132 @@ rm -rf telnet2.sh                                             <span class="c"># 
     <a href="https://github.com/estul-lachin/uig-detections/commit/0363134">uig-detections 0363134</a> and
     <a href="https://github.com/estul-lachin/uig-detections/commit/3209ad9">3209ad9</a>.
     In a few days I'll recount the duplicate alerts on live data to confirm the first fix holds.</p>
+
+  <h2 id="other-siems">The same incident in Splunk and Wazuh (13 November)</h2>
+  <p>Sentinel is the SIEM I run live. I also keep a local Splunk and a local Wazuh on my Mac, loaded with the
+    pseudonymized copy of the same rows that <a href="https://guide.uig.me/">guide.uig.me</a> uses: source
+    addresses become <code>src-</code> plus eight hex digits, and addresses inside commands become
+    <code>[ip]</code>. I worked the session again in each one from the start: find it, rebuild the timeline,
+    see what the detections caught, and repeat the pivots.</p>
+
+  <h3>Splunk</h3>
+  <p>One search covers both sensors, because Cowrie and Suricata are two sourcetypes in the same index:</p>
+<pre><code>index=honeypot_demo src_ip=src-14c2f28d
+| table _time sourcetype eventid username password input signature
+| sort _time</code></pre>
+  <p>It returns 19 rows, 16 from Cowrie and 3 from Suricata, with the same timestamps as the Sentinel timeline
+    above down to the millisecond. Two of the app's seven scheduled detections apply:</p>
+  <ul>
+    <li><strong>HP-01 Login followed by tool download</strong> fired: 0.63 s from the accepted login to the
+      first download command.</li>
+    <li><strong>HP-02 New download URL</strong> did <em>not</em> fire, and that is correct. It keeps every URL it
+      has seen in a lookup and alerts only on new ones. <code>telnet2.sh</code> was new on 9 November, when HP-02
+      did fire, so on the 11th it was known infrastructure.</li>
+  </ul>
+  <p>The pivot on the download host is where Splunk was best. Earlier I compared the 9 November command line
+    to this one by eye. In Splunk a hash makes that one line:</p>
+<pre><code>index=honeypot_demo sourcetype=cowrie:json eventid=cowrie.command.input "telnet2.sh"
+| eval cmd_md5=md5(input)
+| stats min(_time) AS first values(cmd_md5) AS cmd_md5 by session src_ip</code></pre>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>First command (UTC)</th><th>Session</th><th>Login</th><th>Command line MD5</th></tr></thead>
+    <tbody>
+      <tr><td>9 Nov 00:01:52</td><td><code>260947a60300</code></td><td><code>user</code> / <code>user</code></td><td><code>ad52f6d3…</code></td></tr>
+      <tr><td>11 Nov 06:55:30</td><td><code>a9728ab959da</code></td><td><code>root</code> / <code>LSiuY7pOmZG2s</code></td><td><code>ad52f6d3…</code></td></tr>
+      <tr><td>11 Nov 22:11:27</td><td><code>54e5a5f1d89a</code></td><td><code>admin</code> / (empty)</td><td><code>ad52f6d3…</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>That turned up a <strong>third session</strong> I hadn't seen when I wrote the pivots: the same evening,
+    15 hours later, from a Canadian fixed-line ISP's address, again 100/100 on AbuseIPDB. It used a third
+    credential and sent the identical command line. Suricata's CVE-2024-40891 signature fired on it too, so it has
+    now fired twice in 30 days, both times on this loader. Three sessions from three continents with three
+    different logins all send the same command line, which makes the self-spreading reading stronger.</p>
+  <p>Splunk's weakness in my setup is that it isn't live. It only sees what <code>./hp pull</code> copies to the
+    Mac, so here it's a hunting tool, not an alerting one. It has no search on the Suricata data, and nothing
+    for the CLI escape, <code>chmod</code> or <code>rm</code>. The <code>cowrie_ttp</code> macro tags those
+    techniques, but no detection uses them.</p>
+
+  <h3>Wazuh</h3>
+  <p>In Discover, <code>data.src_ip:src-14c2f28d and rule.level &gt;= 5</code>. The first pass was the most
+    useful result of this exercise, because it showed a gap. Wazuh had all 19 events as alerts, but the only one
+    at level 10 or above was Suricata's CVE signature. On the Cowrie side the dropper line was a level-3
+    "command typed", the same as <code>enable</code>, and the failed download fell through to the generic
+    level-3 rule. My Wazuh rules only read command text to look for persistence, so the dropper was in the data
+    and nothing flagged it.</p>
+  <p>I added four rules (<code>siem-wazuh/config/local_rules.xml</code> in uig-honeypot):</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Rule</th><th>Level</th><th>Matches</th><th>ATT&amp;CK</th></tr></thead>
+    <tbody>
+      <tr><td>100105</td><td>8</td><td>A download command: the T1105 regexes from the honeypot's <code>ttp_rules.json</code> (<code>wget</code>, <code>curl</code>, <code>tftp</code>, <code>ftpget</code>, <code>/dev/tcp/</code>, hex <code>echo</code> chunks)</td><td>T1105</td></tr>
+      <tr><td>100106</td><td>10</td><td>The same line also runs <code>chmod</code>, <code>sh file</code> or <code>./file</code></td><td>T1105, T1059.004</td></tr>
+      <tr><td>100112</td><td>5</td><td>Cowrie's <code>file_download.failed</code></td><td>T1105</td></tr>
+      <tr><td>100120</td><td>12</td><td>Any of the three, or a completed download, within 300 s of an accepted login in the same session</td><td>T1078, T1105</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>The correlation rule groups by Cowrie session, not by IP. My Wazuh receives events by replay, which
+    feeds days of events in a few minutes. A 300-second window keyed on the IP would pair a login and a download
+    that were days apart. Session IDs are unique, so that can't happen. I checked the rules in
+    <code>wazuh-logtest</code> before replaying, including cases that must not chain. A download in a different
+    session from the login doesn't chain. A download with no login raises only 100105. A line that adds an SSH key
+    stays the persistence alert.</p>
+  <p>After the change, this session raises the Suricata alerts as before, plus 100120 twice: once on the dropper
+    line and once on the failed download. Across all five days, 100120 flags 117 sessions to HP-01's 122 in
+    Splunk, and it finds none that Splunk missed. The other five chain correctly when I replay just those
+    sessions, so the gap comes from the bulk replay, not the rule. A live feed wouldn't have it.</p>
+  <p>Two things Wazuh does differently from the other two:</p>
+  <ul>
+    <li><strong>One rule per event.</strong> The rule tree stops at the deepest match, so a command line that
+      plants a cron job and also runs <code>wget</code> raises the cron alert and never reaches the download
+      rules. Splunk's macro gives the same event both T1053.003 and T1105.</li>
+    <li><strong>One alert per event, with no per-session suppression.</strong> 100120 raised 1,974 alerts for
+      117 sessions. Three sessions that write a binary in 468 hex <code>echo</code> chunks account for most of
+      them. Splunk suppresses HP-01 per session. Wazuh's <code>ignore</code> attribute silences a rule for every
+      source at once, so here grouping by session belongs in the dashboard.</li>
+  </ul>
+  <p>I also found a bug in my own tooling. The Wazuh image copies the mounted rule file only on its first
+    start, so after a restart it kept running the old rules, without any error. <code>./hp wazuh load</code> now
+    compares the two files, and when they differ it copies the new one in, checks that it loads, and restarts the
+    manager.</p>
+
+  <h3>Side by side</h3>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Sentinel incident (rule)</th><th>Splunk</th><th>Wazuh</th></tr></thead>
+    <tbody>
+      <tr><td>Network Exploit Attempt (High)</td><td>no search on Suricata data</td><td>100202, level 10</td></tr>
+      <tr><td>Download And Execute In One Command (High)</td><td>part of HP-01</td><td>100106 (new); 100120 takes over on this session</td></tr>
+      <tr><td>Login Followed By Tool Transfer (High)</td><td>HP-01</td><td>100120, level 12 (new)</td></tr>
+      <tr><td>Blocklisted Source Logs In (Medium)</td><td>ad hoc search only</td><td>none: no rule spans both sensors</td></tr>
+      <tr><td>File Deleted Right After It Runs (Medium)</td><td>none</td><td>none</td></tr>
+      <tr><td>Network Device CLI Escape Attempt (Low)</td><td>tagged T1059.008, no alert</td><td>none</td></tr>
+      <tr><td>no equivalent</td><td>HP-02 New download URL, on 9 Nov</td><td>none</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>What I take from it:</p>
+  <ul>
+    <li><strong>Coverage comes from the rules, not from the SIEM.</strong> Sentinel caught the most because it
+      runs the 17 Sigma rules I wrote for it. With the detections I'd built for each of the other two, Splunk
+      caught one stage and Wazuh caught only the network side until I added rules. The next step is to convert the
+      same Sigma rules with sigma-cli's Splunk backend. Then the comparison is between products, not between
+      rule sets.</li>
+    <li><strong>Splunk is the better tool for hunting.</strong> <code>eval</code> and <code>stats</code> across
+      both sourcetypes answered every pivot in one search, and that is how the third session turned up.</li>
+    <li><strong>Wazuh fits per-event alerting better than cross-event correlation.</strong>
+      <code>if_matched_sid</code> with <code>same_field</code> handles a two-step chain, but there's no clean way
+      to say "once per session" or "this IP was also on a blocklist".</li>
+    <li><strong>Sentinel, live, showed the cost of my fix.</strong> The third session arrived after the same-day
+      changes. It became two incidents instead of one: a Medium (351) at 22:33, from <em>File Deleted</em>, which
+      landed in an earlier 15-minute window, and a High (352) at 22:48 with the other five rules. Because severity
+      is part of the grouping key, the High alert opened a new incident, exactly as described above. The High
+      incident existed 37 minutes after the session, inside the 30 to 40 minutes the fix predicted.</li>
+  </ul>
+  <p>The Wazuh rules and the reload fix are in
+    <a href="https://github.com/estul-lachin/uig-honeypot">uig-honeypot</a>.</p>
 </article>
 </main>
 
